@@ -26,9 +26,31 @@ class SendyServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->publishes([
+        $app = $this->app;
+
+        if (version_compare($app::VERSION, '5.0') < 0) {
+
+            $this->package('hocza/sendy', 'sendy');
+
+            // Register for exception handling
+            $app->error(function (\Exception $exception) use ($app) {
+                if ('Symfony\Component\Debug\Exception\FatalErrorException'
+                    !== get_class($exception)
+                ) {
+                    $app['sendy']->notifyException($exception, null, "error");
+                }
+            });
+
+            // Register for fatal error handling
+            $app->fatal(function ($exception) use ($app) {
+                $app['sendy']->notifyException($exception, null, "error");
+            });
+        } else {
+          $this->publishes(array(
             __DIR__ . '/../config/sendy.php' => config_path('sendy.php')
-        ]);
+          ));
+        }
+
     }
 
     /**
